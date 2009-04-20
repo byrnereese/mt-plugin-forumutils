@@ -4,16 +4,17 @@ key: ForumUtils
 author_link: http://www.majordojo.com/
 author_name: Byrne Reese
 description: This plugin provides a number of utilities for forum administrators, including: a) promoting a comment to an entry, b) closing comments from the entry listing screen, and c) the ability to feature comments.
-version: 0.91
+version: 0.92
 plugin_link: http://www.majordojo.com/projects/forum-utils.php
-schema_version: 3
+schema_version: 4
 
 object_types:
     entry:
-        promoted_from_comment_id: integer
+        is_featured: smallint
+        promoted_from_comment_id: integer meta
     comment:
         is_featured: smallint
-        promoted_to_entry_id: integer
+        promoted_to_entry_id: integer meta
 
 tags:
     function:
@@ -22,12 +23,14 @@ tags:
     block:        
         CommentIsPromoted?: $ForumUtils::ForumUtils::Plugin::tag_is_comment_promoted
         CommentIsFeatured?: $ForumUtils::ForumUtils::Plugin::tag_is_comment_featured
+        EntryIsFeatured?: $ForumUtils::ForumUtils::Plugin::tag_is_entry_featured
         EntryWasPromoted?: $ForumUtils::ForumUtils::Plugin::tag_was_entry_promoted
 
 callbacks:
     MT::App::CMS::template_source.comment_table: $ForumUtils::ForumUtils::Plugin::xfrm_featured_comments
+    MT::App::CMS::template_source.entry_table: $ForumUtils::ForumUtils::Plugin::xfrm_featured_entries
     MT::App::CMS::template_source.header: $ForumUtils::ForumUtils::Plugin::xfrm_header
-
+    MT::App::CMS::template_source.edit_entry: $ForumUtils::ForumUtils::Plugin::xfrm_edit_entry
 
 list_actions:
     comment:
@@ -41,13 +44,18 @@ list_actions:
         feature:
             label: Toggle Featured
             order: 100
-            code:  $ForumUtils::ForumUtils::Plugin::itemset_feature_comment
+            code:  $ForumUtils::ForumUtils::Plugin::itemset_feature
             permission: edit_all_posts
     entry:
         close:
             label: Close Comments
             order: 200
             code:  $ForumUtils::ForumUtils::Plugin::itemset_close_comments
+            permission: edit_all_posts
+        feature:
+            label: Toggle Featured
+            order: 100
+            code:  $ForumUtils::ForumUtils::Plugin::itemset_feature
             permission: edit_all_posts
 
 page_actions:
@@ -60,4 +68,9 @@ page_actions:
         toggle_featured:
             label: Toggle Featured
             order: 100
-            code:  $ForumUtils::ForumUtils::Plugin::itemset_feature_comment
+            code:  $ForumUtils::ForumUtils::Plugin::itemset_feature
+    entry:
+        toggle_featured:
+            label: Toggle Featured
+            order: 100
+            code:  $ForumUtils::ForumUtils::Plugin::itemset_feature

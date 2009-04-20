@@ -113,25 +113,32 @@ sub itemset_promote {
     $app->call_return;
 }
 
-sub itemset_feature_comment {
+sub itemset_feature {
     my ($app) = @_;
     $app->validate_magic or return;
 
-    require MT::Comment;
-    require MT::Entry;
-    my @comments = $app->param('id');
-    for my $comm_id (@comments) {
-        my $comm = MT::Comment->load($comm_id) or next;
-	if ($comm->is_featured) {
-	    $comm->is_featured(0);
+    my $type = $app->{query}->param('_type');
+    my $class = MT->model($type) if $type;
+    # TODO error if class is null
+
+    my @objs = $app->param('id');
+    for my $obj_id (@objs) {
+        my $obj = $class->load($obj_id) or next;
+	if ($obj->is_featured) {
+	    $obj->is_featured(0);
 	} else {
-	    $comm->is_featured(1);
+	    $obj->is_featured(1);
 	}
-	$comm->save;
-	MT->instance->rebuild( Entry => $comm->entry_id );
+	$obj->save;
+	if ($type eq 'entry') {
+# TODO rebuild indexes?
+#	    MT->instance->rebuild( Entry => $obj->entry_id );
+	} elsif ($type eq 'comment') {
+	    MT->instance->rebuild( Entry => $obj->entry_id );
+	}
     }
 
-    $app->add_return_arg( promoted => 1 );
+    $app->add_return_arg( featured => 1 );
     $app->call_return;
 }
 
@@ -176,17 +183,25 @@ sub tag_was_entry_promoted {
 
 sub tag_is_comment_featured {
     my ($ctx, $args, $cond) = @_;
-    my $c = $ctx->stash('comment')
+    my $obj = $ctx->stash('comment')
         or return $ctx->_no_comment_error($ctx->stash('tag'));
-    return $c->is_featured;
+    return $obj->is_featured;
+
+}
+
+sub tag_is_entry_featured {
+    my ($ctx, $args, $cond) = @_;
+    my $obj = $ctx->stash('entry')
+        or return $ctx->_no_entry_error($ctx->stash('tag'));
+    return $obj->is_featured;
 
 }
 
 sub tag_promoted_from_comment_id {
     my ($ctx, $args, $cond) = @_;
-    my $e = $ctx->stash('entry')
+    my $obj = $ctx->stash('entry')
         or return $ctx->_no_entry_error($ctx->stash('tag'));
-    return $e->promoted_from_comment_id;
+    return $obj->promoted_from_comment_id;
 }
 
 sub xfrm_featured_comments {
@@ -208,10 +223,62 @@ EOF
     $$html_ref =~ s{<td>(.*<mt:if name="has_edit_access">)}{<td colspan="2">$1}msg;
 }
 
+# TODO use template param callback
+sub xfrm_featured_entries {
+    my ($cb, $app, $html_ref) = @_;
+    
+    $$html_ref =~ s{(<th class="title")}{<th class="featured"><img src="<mt:var name="static_uri">plugins/ForumUtils/images/star-listing.gif" alt="<__trans phrase="Featured">" width="9" height="9" /></th>$1}msg;
+
+    my $html = <<"EOF";
+                    <td class="featured <mt:if name="is_featured">yes</mt:if>">
+                <mt:if name="is_featured"> 
+                        <img src="<mt:var name="static_uri">images/spacer.gif" alt="<__trans phrase="Not Featured">" width="9" height="9" />
+               <mt:else>
+                        <img src="<mt:var name="static_uri">images/spacer.gif" alt="<__trans phrase="Not Featured">" width="9" height="9" />
+                </mt:if>
+                    </td>
+EOF
+
+    $$html_ref =~ s{(<td class="title")}{$html$1}msg;
+    $$html_ref =~ s{<td>(.*<mt:if name="has_edit_access">)}{<td colspan="2">$1}msg;
+}
+
 sub xfrm_header {
     my ($cb, $app, $html_ref) = @_;
     $$html_ref =~ s{</head>}{<link rel="stylesheet" href="<mt:var name="static_uri">plugins/ForumUtils/css/app.css" type="text/css" /></head>}m;
 #	if $app->mode eq 'list_comments';
 }
+
+sub xfrm_edit_entry {
+    my ($cb, $app, $html_ref) = @_;
+    MT->instance->log("Transforming entry");
+    $$html_ref =~ s{(<li class="pings-link">.*</li>)}{$1<mt:if name="is_featured"><li class="featured-link"><span>This is a featured entry</span></li></mt:if>}m;
+}
+
 1;
 
+__END__
+
+# Deprecated
+
+sub itemset_feature_comment {
+    my ($app) = @_;
+    $app->validate_magic or return;
+
+    require MT::Comment;
+    require MT::Entry;
+    my @comments = $app->param('id');
+    for my $comm_id (@comments) {
+        my $comm = MT::Comment->load($comm_id) or next;
+	if ($comm->is_featured) {
+	    $comm->is_featured(0);
+	} else {
+	    $comm->is_featured(1);
+	}
+	$comm->save;
+	MT->instance->rebuild( Entry => $comm->entry_id );
+    }
+
+    $app->add_return_arg( featured => 1 );
+    $app->call_return;
+}
