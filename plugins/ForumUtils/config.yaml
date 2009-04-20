@@ -1,0 +1,63 @@
+name: Forum Utilities
+id: ForumUtils
+key: ForumUtils
+author_link: http://www.majordojo.com/
+author_name: Byrne Reese
+description: This plugin provides a number of utilities for forum administrators, including: a) promoting a comment to an entry, b) closing comments from the entry listing screen, and c) the ability to feature comments.
+version: 0.91
+plugin_link: http://www.majordojo.com/projects/forum-utils.php
+schema_version: 3
+
+object_types:
+    entry:
+        promoted_from_comment_id: integer
+    comment:
+        is_featured: smallint
+        promoted_to_entry_id: integer
+
+tags:
+    function:
+        CommentPromotedToEntryId: $ForumUtils::ForumUtils::Plugin::tag_promoted_to_entry_id
+        EntryPromotedFromCommentId: $ForumUtils::ForumUtils::Plugin::tag_promoted_from_comment_id
+    block:        
+        CommentIsPromoted?: $ForumUtils::ForumUtils::Plugin::tag_is_comment_promoted
+        CommentIsFeatured?: $ForumUtils::ForumUtils::Plugin::tag_is_comment_featured
+        EntryWasPromoted?: $ForumUtils::ForumUtils::Plugin::tag_was_entry_promoted
+
+callbacks:
+    MT::App::CMS::template_source.comment_table: $ForumUtils::ForumUtils::Plugin::xfrm_featured_comments
+    MT::App::CMS::template_source.header: $ForumUtils::ForumUtils::Plugin::xfrm_header
+
+
+list_actions:
+    comment:
+        promote:
+            label: Promote to Entry
+            order: 200
+            code:  $ForumUtils::ForumUtils::Plugin::itemset_promote
+            permission: edit_all_posts
+            input: 1
+            input_label: Please select a title for the entry you are about to create:
+        feature:
+            label: Toggle Featured
+            order: 100
+            code:  $ForumUtils::ForumUtils::Plugin::itemset_feature_comment
+            permission: edit_all_posts
+    entry:
+        close:
+            label: Close Comments
+            order: 200
+            code:  $ForumUtils::ForumUtils::Plugin::itemset_close_comments
+            permission: edit_all_posts
+
+page_actions:
+    comment:
+        promote_indiv:
+            label: Promote to Entry
+            order: 101
+            code:  $ForumUtils::ForumUtils::Plugin::itemset_promote_indiv
+            permission: edit_all_posts
+        toggle_featured:
+            label: Toggle Featured
+            order: 100
+            code:  $ForumUtils::ForumUtils::Plugin::itemset_feature_comment

@@ -1,0 +1,6 @@
+#comment-listing-table tr.selected td.featured.yes img { 
+   background-image: url(../images/star-listing-on.gif); 
+}
+#comment-listing-table td.featured.yes img { 
+   background-image: url(../images/star-listing.gif); 
+}
