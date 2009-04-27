@@ -252,7 +252,7 @@ sub xfrm_header {
 sub xfrm_edit_entry {
     my ($cb, $app, $html_ref) = @_;
     MT->instance->log("Transforming entry");
-    $$html_ref =~ s{(<li class="pings-link">.*</li>)}{$1<mt:if name="is_featured"><li class="featured-link"><span>This is a featured entry</span></li></mt:if>}m;
+    $$html_ref =~ s{(<li class="pings-link">.*</li>)}{$1<mt:if name="is_featured"><li class="featured-link"><span>This is a featured entry</span><input type="hidden" name="is_featured" value="1" /></li><mt:else><input type="hidden" name="is_featured" value="0" /></mt:if>}m;
 }
 
 1;

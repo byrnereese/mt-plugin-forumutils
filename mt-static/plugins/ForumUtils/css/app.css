@@ -4,3 +4,9 @@
 #comment-listing-table td.featured.yes img { 
    background-image: url(../images/star-listing.gif); 
 }
+ul.object-stats li.featured-link { 
+   background-image: url(../images/star-listing.gif); 
+   background-repeat: no-repeat;
+   padding-left: 25px;
+   background-position: 9px 6px;
+}
