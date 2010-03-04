@@ -105,7 +105,10 @@ sub itemset_promote {
         my $title = $app->param('itemset_action_input')
           || $app->translate("Untitled");
         my $entry = _promote( $comm, $title, MT->model('entry')->RELEASE() );
-        MT->instance->rebuild( Entry => $entry->id );
+        $app->rebuild_entry( Entry => $entry->id, 
+                             PreferredArchiveOnly => 1 )
+            or return $app->handle_error(
+                $app->translate( "Publish failed: [_1]", $app->errstr ) );
     }
 
     $app->add_return_arg( promoted => 1 );
@@ -157,7 +160,10 @@ sub itemset_close_comments {
         my $entry = MT->model('entry')->load($entry_id) or next;
         $entry->allow_comments(0);
         $entry->save or die $entry->errstr;
-        MT->instance->rebuild( Entry => $entry_id );
+        $app->rebuild_entry( Entry => $entry_id, 
+                             PreferredArchiveOnly => 1 )
+            or return $app->handle_error(
+                $app->translate( "Publish failed: [_1]", $app->errstr ) );
     }
     $app->add_return_arg( comments_closed => 1 );
     $app->call_return;
