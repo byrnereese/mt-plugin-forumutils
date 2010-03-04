@@ -20,10 +20,10 @@ sub _rand_password {
 sub _promote {
     my ( $comm, $title, $status ) = @_;
 
-    my $parent = MT::Entry->load( $comm->entry_id ) or next;
+    my $parent = MT->model('entry')->load( $comm->entry_id ) or next;
     my $blog = $comm->blog();
 
-    my $entry = MT::Entry->new;
+    my $entry = MT->model('entry')->new;
     $entry->blog_id( $blog->id );
     $entry->allow_comments(1);
     $entry->title($title);
@@ -42,8 +42,7 @@ sub _promote {
         $entry->created_by( $comm->commenter_id );
     }
     else {
-        require MT::Author;
-        my $user = MT::Author->new;
+        my $user = MT->model('author')->new;
         $user->name( $comm->author );
         $user->nickname( $comm->author );
         $user->email( $comm->email );
@@ -62,11 +61,11 @@ sub _promote {
     }
 
     $entry->save or die $entry->errstr;
-    my @replies = MT::Comment->load( { parent_id => $comm->id } );
+    my @replies = MT->model('comment')->load( { parent_id => $comm->id } );
     for my $reply (@replies) {
         $reply->entry_id( $entry->id );
         $reply->save or $reply->errstr;
-        push @replies, MT::Comment->load( { parent_id => $reply->id } );
+        push @replies, MT->model('comment')->load( { parent_id => $reply->id } );
     }
     $comm->promoted_to_entry_id( $entry->id );
     $comm->save;
@@ -77,13 +76,11 @@ sub itemset_promote_indiv {
     my ($app) = @_;
     $app->validate_magic or return;
 
-    require MT::Comment;
-    require MT::Entry;
     my $comm_id = $app->param('id');
-    my $comm = MT::Comment->load($comm_id) or next;
+    my $comm = MT->model('comment')->load($comm_id) or next;
     next if $comm->promoted_to_entry_id;
     my $title = $app->translate("Untitled");
-    my $entry = _promote( $comm, $title, MT::Entry::HOLD() );
+    my $entry = _promote( $comm, $title, MT->model('entry')->HOLD() );
 
     $app->redirect(
         $app->uri(
@@ -101,15 +98,13 @@ sub itemset_promote {
     my ($app) = @_;
     $app->validate_magic or return;
 
-    require MT::Comment;
-    require MT::Entry;
     my @comments = $app->param('id');
     for my $comm_id (@comments) {
-        my $comm = MT::Comment->load($comm_id) or next;
+        my $comm = MT->model('comment')->load($comm_id) or next;
         next if $comm->promoted_to_entry_id;
         my $title = $app->param('itemset_action_input')
           || $app->translate("Untitled");
-        my $entry = _promote( $comm, $title, MT::Entry->RELEASE() );
+        my $entry = _promote( $comm, $title, MT->model('entry')->RELEASE() );
         MT->instance->rebuild( Entry => $entry->id );
     }
 
@@ -142,7 +137,10 @@ sub itemset_feature {
             #	    MT->instance->rebuild( Entry => $obj->entry_id );
         }
         elsif ( $type eq 'comment' ) {
-            MT->instance->rebuild( Entry => $obj->entry_id );
+            $app->rebuild_entry( Entry => $obj->entry_id, 
+                                 PreferredArchiveOnly => 1 )
+                or return $app->handle_error(
+                    $app->translate( "Publish failed: [_1]", $app->errstr ) );
         }
     }
 
@@ -154,10 +152,9 @@ sub itemset_close_comments {
     my ($app) = @_;
     $app->validate_magic or return;
 
-    require MT::Entry;
     my @entries = $app->param('id');
     for my $entry_id (@entries) {
-        my $entry = MT::Entry->load($entry_id) or next;
+        my $entry = MT->model('entry')->load($entry_id) or next;
         $entry->allow_comments(0);
         $entry->save or die $entry->errstr;
         MT->instance->rebuild( Entry => $entry_id );
@@ -219,13 +216,13 @@ sub xfrm_featured_comments {
 s{(<th class="comment")}{<th class="featured"><img src="<mt:var name="static_uri">plugins/ForumUtils/images/star-listing.gif" alt="<__trans phrase="Featured">" width="9" height="9" /></th>$1}msg;
 
     my $html = <<"EOF";
-                    <td class="featured <mt:if name="is_featured">yes</mt:if>">
-                <mt:if name="is_featured"> 
-                        <img src="<mt:var name="static_uri">images/spacer.gif" alt="<__trans phrase="Not Featured">" width="9" height="9" />
-               <mt:else>
-                        <img src="<mt:var name="static_uri">images/spacer.gif" alt="<__trans phrase="Not Featured">" width="9" height="9" />
-                </mt:if>
-                    </td>
+     <td class="featured <mt:if name="is_featured">yes</mt:if>">
+     <mt:if name="is_featured"> 
+       <img src="<mt:var name="static_uri">images/spacer.gif" alt="<__trans phrase="Not Featured">" width="9" height="9" />
+     <mt:else>
+       <img src="<mt:var name="static_uri">images/spacer.gif" alt="<__trans phrase="Not Featured">" width="9" height="9" />
+     </mt:if>
+     </td>
 EOF
 
     $$html_ref =~ s{(<td class="comment")}{$html$1}msg;
@@ -241,13 +238,13 @@ sub xfrm_featured_entries {
 s{(<th class="title")}{<th class="featured"><img src="<mt:var name="static_uri">plugins/ForumUtils/images/star-listing.gif" alt="<__trans phrase="Featured">" width="9" height="9" /></th>$1}msg;
 
     my $html = <<"EOF";
-                    <td class="featured <mt:if name="is_featured">yes</mt:if>">
-                <mt:if name="is_featured"> 
-                        <img src="<mt:var name="static_uri">images/spacer.gif" alt="<__trans phrase="Not Featured">" width="9" height="9" />
-               <mt:else>
-                        <img src="<mt:var name="static_uri">images/spacer.gif" alt="<__trans phrase="Not Featured">" width="9" height="9" />
-                </mt:if>
-                    </td>
+     <td class="featured <mt:if name="is_featured">yes</mt:if>">
+     <mt:if name="is_featured"> 
+       <img src="<mt:var name="static_uri">images/spacer.gif" alt="<__trans phrase="Not Featured">" width="9" height="9" />
+     <mt:else>
+       <img src="<mt:var name="static_uri">images/spacer.gif" alt="<__trans phrase="Not Featured">" width="9" height="9" />
+     </mt:if>
+     </td>
 EOF
 
     $$html_ref =~ s{(<td class="title")}{$html$1}msg;
@@ -273,27 +270,3 @@ s{(<li class="pings-link">.*</li>)}{$1<mt:if name="is_featured"><li class="featu
 1;
 
 __END__
-
-# Deprecated
-
-sub itemset_feature_comment {
-    my ($app) = @_;
-    $app->validate_magic or return;
-
-    require MT::Comment;
-    require MT::Entry;
-    my @comments = $app->param('id');
-    for my $comm_id (@comments) {
-        my $comm = MT::Comment->load($comm_id) or next;
-	if ($comm->is_featured) {
-	    $comm->is_featured(0);
-	} else {
-	    $comm->is_featured(1);
-	}
-	$comm->save;
-	MT->instance->rebuild( Entry => $comm->entry_id );
-    }
-
-    $app->add_return_arg( featured => 1 );
-    $app->call_return;
-}

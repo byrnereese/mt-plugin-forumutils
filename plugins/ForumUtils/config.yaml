@@ -4,7 +4,7 @@ key: ForumUtils
 author_link: http://www.majordojo.com/
 author_name: Byrne Reese
 description: This plugin provides a number of utilities for forum administrators, including: a) promoting a comment to an entry, b) closing comments from the entry listing screen, and c) the ability to feature comments.
-version: 0.93
+version: 0.9.4
 plugin_link: http://www.majordojo.com/projects/forum-utils.php
 schema_version: 5
 
