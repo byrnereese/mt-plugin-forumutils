@@ -260,6 +260,7 @@ EOF
 
 sub xfrm_header {
     my ( $cb, $app, $html_ref ) = @_;
+    return unless $app->mode =~ /comment/;
     $$html_ref =~
 s{</head>}{<link rel="stylesheet" href="<mt:var name="static_uri">plugins/ForumUtils/css/app.css" type="text/css" /></head>}m;
 
